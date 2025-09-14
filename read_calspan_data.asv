@@ -1,0 +1,71 @@
+%function [SA,FZ,] = read_calspan_data (tireName,rimWidth,min_SA, max_SA) 
+    SA = [];
+    FZ = [];
+    %acrescentar conforme necessario
+    
+    minfich = 16;
+    maxfich = 79;
+
+    fprintf("Escolhe que tipo de testes queres recolher \n Cornering-1 \n Drive Brake-2\n");
+    
+    choice = input('');
+    if choice == 1
+        datasetType = 'cornering';
+        folderPath = 'RawData_Cornering_ASCII_SI_Round9_Runs16to49';
+
+      
+
+    elseif choice == 2  
+        datasetType = 'drivebrake';
+        folderPath = 'RawData_DriveBrake_ASCII_SI_Round9';
+        
+    else  error('Opção inválida. Escolhe 1 (cornering) ou 2 (drivebrake).');
+    end
+    clc;
+
+    for i = minfich:maxfich
+
+    filename = sprintf('B2356raw%d.dat', i);
+    filepath = fullfile(folderPath, filename);
+
+    if exist(filepath, 'file')
+        fid = fopen(filepath, 'r');
+        if fid == -1
+            warning("Não foi possível abrir o ficheiro: %s", filename);
+            continue;
+        end
+
+        % ler primeira linha do header
+        headerLine = fgetl(fid);
+
+        % verificar pneu e jante
+        tireCheck = contains(headerLine, tireName, 'IgnoreCase', true); 
+        rimCheck  = contains(headerLine, sprintf('Rim_Width=%g', rimWidth));
+
+        if ~tireCheck || ~rimCheck
+            fprintf("Ficheiro %s ignorado (pneu ou jante não correspondem)\n", filename);
+            fclose(fid);
+            continue;
+        end
+
+        % saltar as próximas 2 linhas do header
+        fgetl(fid); 
+        fgetl(fid);
+
+        % ler dados numéricos
+        data = textscan(fid, repmat('%f',1,21), 'Delimiter', '\t');
+
+        % acumular colunas
+        SA = [SA; data{4}];
+        FZ = [FZ; data{11}];
+
+        fclose(fid);
+
+    else
+        fprintf("Ficheiro não encontrado: %s\n", filename);
+    end
+end
+
+
+    
+    
